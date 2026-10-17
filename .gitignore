@@ -1,0 +1,4 @@
+# Configuración local con credenciales: nunca versionar.
+backend/config/
+.env
+*.log
