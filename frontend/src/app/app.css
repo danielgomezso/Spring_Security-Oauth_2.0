@@ -1,0 +1,42 @@
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 22px max(24px, calc((100vw - 1120px) / 2));
+  background: white;
+  border-bottom: 1px solid #dce5e8;
+  flex-wrap: wrap;
+}
+.brand {
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-decoration: none;
+  color: #13675e;
+}
+nav {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+nav a {
+  color: #40565e;
+  text-decoration: none;
+}
+nav a.active {
+  color: #08786a;
+  font-weight: 700;
+}
+main {
+  max-width: 1120px;
+  margin: 48px auto;
+  padding: 0 24px;
+  min-height: 65vh;
+}
+footer {
+  padding: 24px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #526b74;
+}

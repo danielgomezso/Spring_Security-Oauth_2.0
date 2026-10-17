@@ -1,0 +1,76 @@
+<p class="eyebrow">PANEL DEL PACIENTE · ROLE_USER</p>
+<h1>Mis citas médicas</h1>
+<p>Reserva una consulta y revisa tus próximas citas.</p>
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+@if (success()) {
+  <p class="success" role="status">{{ success() }}</p>
+}
+<form #form="ngForm" (ngSubmit)="agendar()" class="card">
+  <h2>Agendar una cita</h2>
+  <div class="form-grid">
+    <div>
+      <label for="medico">Especialidad / médico</label
+      ><select id="medico" name="medico" [(ngModel)]="nueva.medicoNombre" required>
+        <option value="">Selecciona una opción</option>
+        @for (e of especialidades(); track e.nombre) {
+          <option [value]="e.medicoNombre">{{ e.nombre }} — {{ e.medicoNombre }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="fecha">Fecha</label
+      ><input id="fecha" name="fecha" type="date" [(ngModel)]="nueva.fecha" required />
+    </div>
+    <div>
+      <label for="hora">Hora</label
+      ><input id="hora" name="hora" type="time" [(ngModel)]="nueva.hora" required />
+    </div>
+  </div>
+  <label for="motivo">Motivo</label
+  ><textarea
+    id="motivo"
+    name="motivo"
+    [(ngModel)]="nueva.motivo"
+    required
+    maxlength="500"
+    rows="3"
+  ></textarea>
+  <button [disabled]="form.invalid || busy()">{{ busy() ? 'Guardando…' : 'Agendar cita' }}</button>
+</form>
+<h2>Mi agenda</h2>
+@if (loading()) {
+  <p role="status">Cargando citas…</p>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Médico</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Motivo</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of citas(); track c.id) {
+          <tr>
+            <td>{{ c.medicoNombre }}</td>
+            <td>{{ c.fecha }}</td>
+            <td>{{ c.hora }}</td>
+            <td>{{ c.motivo }}</td>
+            <td>
+              <span class="badge">{{ c.estado }}</span>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5">Todavía no tienes citas agendadas.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
