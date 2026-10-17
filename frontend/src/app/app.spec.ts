@@ -1,24 +1,25 @@
+import { mockStorage } from './testing/storage';
+import { vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
 import { App } from './app';
-
 describe('App', () => {
   beforeEach(async () => {
+    mockStorage();
     await TestBed.configureTestingModule({
       imports: [App],
-    })
-      .compileComponents();
+      providers: [provideRouter([]), provideHttpClient()],
+    }).compileComponents();
   });
-
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
-
-  it('should render title', async () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('muestra servicios y login sin paneles privados al visitante', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, frontend');
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.textContent).toContain('Clínica Demo');
+    expect(html.textContent).toContain('Ingresar');
+    expect(html.textContent).not.toContain('Administración');
+    expect(html.textContent).not.toContain('Mis citas');
   });
 });
