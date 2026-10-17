@@ -1,6 +1,6 @@
-package com.examen.controller;
-import com.examen.dto.LoginRequest;
-import com.examen.repository.UsuarioRepository;
+package com.citasmedicas.controller;
+import com.citasmedicas.dto.LoginRequest;
+import com.citasmedicas.repository.UsuarioRepository;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.*;

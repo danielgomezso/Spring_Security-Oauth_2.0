@@ -1,6 +1,6 @@
-package com.examen.controller;
-import com.examen.dto.CitaResponse;
-import com.examen.service.CitaService;
+package com.citasmedicas.controller;
+import com.citasmedicas.dto.CitaResponse;
+import com.citasmedicas.service.CitaService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;

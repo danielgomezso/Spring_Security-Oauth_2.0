@@ -1,4 +1,4 @@
-package com.examen.model;
+package com.citasmedicas.model;
 import jakarta.persistence.*;
 
 /** Se guarda un hash BCrypt; esta entidad nunca se serializa en la API. */

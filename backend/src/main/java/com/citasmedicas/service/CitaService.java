@@ -1,7 +1,7 @@
-package com.examen.service;
-import com.examen.dto.*;
-import com.examen.model.CitaMedica;
-import com.examen.repository.*;
+package com.citasmedicas.service;
+import com.citasmedicas.dto.*;
+import com.citasmedicas.model.CitaMedica;
+import com.citasmedicas.repository.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.http.HttpStatus;

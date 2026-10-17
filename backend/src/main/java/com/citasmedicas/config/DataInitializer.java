@@ -1,6 +1,6 @@
-package com.examen.config;
-import com.examen.model.*;
-import com.examen.repository.*;
+package com.citasmedicas.config;
+import com.citasmedicas.model.*;
+import com.citasmedicas.repository.*;
 import java.time.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

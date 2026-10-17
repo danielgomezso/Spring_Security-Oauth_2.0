@@ -1,7 +1,7 @@
-package com.examen;
+package com.citasmedicas;
 
-import com.examen.model.*;
-import com.examen.repository.*;
+import com.citasmedicas.model.*;
+import com.citasmedicas.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.*;
 import org.junit.jupiter.api.*;

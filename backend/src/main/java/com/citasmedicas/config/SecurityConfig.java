@@ -1,4 +1,4 @@
-package com.examen.config;
+package com.citasmedicas.config;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.crypto.SecretKey;

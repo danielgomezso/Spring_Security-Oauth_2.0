@@ -1,4 +1,4 @@
-package com.examen.dto;
+package com.citasmedicas.dto;
 import jakarta.validation.constraints.*;
 import java.time.*;
 // El paciente se obtiene del JWT, nunca de un usuarioId enviado por el navegador.

@@ -1,4 +1,4 @@
-package com.examen.controller;
+package com.citasmedicas.controller;
 import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;

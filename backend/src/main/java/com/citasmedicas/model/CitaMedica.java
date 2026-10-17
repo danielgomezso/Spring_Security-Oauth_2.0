@@ -1,4 +1,4 @@
-package com.examen.model;
+package com.citasmedicas.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalTime;

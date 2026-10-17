@@ -1,5 +1,5 @@
-package com.examen.controller;
-import com.examen.service.EspecialidadService;
+package com.citasmedicas.controller;
+import com.citasmedicas.service.EspecialidadService;
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
 @RestController @RequestMapping("/publico")

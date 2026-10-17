@@ -1,6 +1,6 @@
-package com.examen.controller;
-import com.examen.dto.*;
-import com.examen.service.CitaService;
+package com.citasmedicas.controller;
+import com.citasmedicas.dto.*;
+import com.citasmedicas.service.CitaService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;

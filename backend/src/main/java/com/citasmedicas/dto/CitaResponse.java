@@ -1,5 +1,5 @@
-package com.examen.dto;
-import com.examen.model.CitaMedica;
+package com.citasmedicas.dto;
+import com.citasmedicas.model.CitaMedica;
 import java.time.*;
 public record CitaResponse(Long id, String medicoNombre, LocalDate fecha, LocalTime hora,
  String motivo, String estado, String paciente) {

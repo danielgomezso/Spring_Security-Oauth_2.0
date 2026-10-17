@@ -1,4 +1,4 @@
-package com.examen.service;
+package com.citasmedicas.service;
 import java.util.List;
 import org.springframework.stereotype.Service;
 @Service
