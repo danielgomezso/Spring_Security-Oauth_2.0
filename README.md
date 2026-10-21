@@ -35,13 +35,13 @@ El backend combina en un solo servicio las capacidades de un **Servidor de Autor
 
 ## 👥 Cuentas y Credenciales de Demostración
 
-El sistema inicializa automáticamente las siguientes cuentas con contraseñas cifradas en **BCrypt**:
+El sistema inicializa automáticamente las siguientes cuentas con contraseñas almacenadas como hashes **BCrypt**:
 
 | Rol | Usuario | Contraseña | Permisos |
 |---|---|---|---|
 | **Paciente (`ROLE_USER`)** | `paciente1` | `password123` | Consultar agenda personal y reservar nuevas citas |
 | **Administrador (`ROLE_ADMIN`)** | `admin1` | `admin123` | Visualizar todas las citas del sistema y cancelar reservas |
-| **Cliente OAuth 2.0** | `citas-service` | `secret123` | Generar tokens máquina a máquina (*Client Credentials*) |
+| **Cliente OAuth 2.0** | `citas-service` | `secret123` | Obtener tokens para consultar únicamente el resumen de citas |
 
 ---
 
@@ -49,7 +49,7 @@ El sistema inicializa automáticamente las siguientes cuentas con contraseñas c
 
 ### Requisitos Previos
 * **Java 17 o superior** (OpenJDK 21 recomendado)
-* **Node.js 18+** y **npm**
+* **Node.js 22.22.3+, 24.15+ o 26+** y **npm** (según Angular 22)
 
 ### 1. Iniciar el Backend
 ```bash
@@ -102,7 +102,7 @@ cd backend
 * `GET /oauth2/jwks`: Conjunto de llaves públicas RSA para validación de tokens.
 * `POST /oauth2/token`: Endpoint de emisión de tokens OAuth 2.0.
 * `GET /publico/especialidades`: Listado público de especialidades médicas disponibles.
-* `POST /auth/login`: Autenticación directa por credenciales para la interfaz web.
+* `POST /auth/login`: Login directo conservado como ejemplo alternativo; Angular ya no lo utiliza.
 
 ### 🔒 Panel del Paciente (`ROLE_USER`)
 * `GET /api/citas/mis-citas`: Lista ordenada de citas del paciente autenticado.
@@ -111,3 +111,19 @@ cd backend
 ### 🔒 Administración (`ROLE_ADMIN`)
 * `GET /api/admin/citas`: Visualización global de todas las citas agendadas.
 * `DELETE /api/admin/citas/{id}`: Eliminación/cancelación de una cita.
+
+### Tres cadenas de seguridad
+
+- **Servidor OAuth:** endpoints estándar, sesión para el proceso de autorización.
+- **API:** `/api/**`, `/publico/**` y el login alternativo `/auth/**`. Stateless; las cookies de sesión no autentican la API. CSRF se desactiva solo aquí porque la autenticación utiliza Bearer.
+- **Formulario web:** `/login` y `/logout`, con sesión y CSRF habilitado. La consola H2 mantiene su excepción únicamente en el perfil local H2.
+
+Se conservan los roles originales: USER accede a sus citas y ADMIN administra todas. No se asignan roles humanos a clientes máquina a máquina.
+
+### Claves y límites académicos
+
+Con SQL Server, la clave RSA se genera una vez en `backend/config/oauth2-key.json` y se reutiliza al reiniciar. Esa carpeta está excluida de Git y contiene material privado: no compartirla. Ejecutar Maven desde `backend`. Se puede cambiar la ruta con `OAUTH2_KEY_FILE`.
+
+En H2 se conservan claves efímeras para que las pruebas no escriban secretos en disco. Los clientes, códigos y sesiones OAuth siguen en memoria para mantener el ejemplo sencillo: reiniciar exige volver a iniciar el flujo de autorización. No se añadió otra base de datos OAuth ni un proveedor externo.
+
+Para usuarios reales se necesitarían HTTPS, protección de claves, persistencia de autorizaciones y una estrategia de almacenamiento de tokens frente a XSS. RSA por sí solo no convierte una demo en un sistema de producción.
