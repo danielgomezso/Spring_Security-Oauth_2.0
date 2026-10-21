@@ -28,7 +28,7 @@ import { Especialidad } from '../../models/cita';
     </div>
     <a class="button" routerLink="/login">Iniciar sesión</a>
     <aside>
-      Demostración académica: esta página consulta <code>GET /publico/especialidades</code> sin
+      Demostración: Esta página consulta <code>GET /publico/especialidades</code> sin
       autenticación.
     </aside>
   `,
