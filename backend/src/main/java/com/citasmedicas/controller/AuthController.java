@@ -7,7 +7,7 @@ import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -20,7 +20,7 @@ public class AuthController {
  private final String issuer;
  private final String dummyHash;
  public AuthController(UsuarioRepository usuarios, BCryptPasswordEncoder passwords, JwtEncoder encoder,
-  @Value("${app.jwt.issuer}") String issuer) {
+  @Value("${app.oauth2.issuer:http://localhost:8080}") String issuer) {
   this.usuarios=usuarios; this.passwords=passwords; this.encoder=encoder; this.issuer=issuer;
   this.dummyHash=passwords.encode("usuario-inexistente");
  }
@@ -33,7 +33,7 @@ public class AuthController {
   var claims=JwtClaimsSet.builder().issuer(issuer).subject(usuario.getUsername()).issuedAt(now)
    .expiresAt(now.plusSeconds(3600)).claim("username",usuario.getUsername())
    .claim("roles",List.of(usuario.getRol())).build();
-  var token=encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(),claims));
+  var token=encoder.encode(JwtEncoderParameters.from(JwsHeader.with(SignatureAlgorithm.RS256).build(),claims));
   return Map.of("access_token",token.getTokenValue(),"token_type","Bearer","expires_in",3600,
    "username",usuario.getUsername(),"roles",List.of(usuario.getRol()));
  }
