@@ -13,7 +13,6 @@ export class App {
     private router: Router,
   ) {}
   logout() {
-    this.auth.logout();
-    void this.router.navigate(['/']);
+    if (!this.auth.logout()) void this.router.navigate(['/']);
   }
 }

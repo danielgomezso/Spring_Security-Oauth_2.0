@@ -19,7 +19,7 @@ export class AuthInterceptor implements HttpInterceptor {
     return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
         if (protectedApi && error.status === 401) {
-          this.auth.logout();
+          this.auth.clearSession();
           void this.router.navigate(['/login'], { queryParams: { expired: '1' } });
         }
         return throwError(() => error);

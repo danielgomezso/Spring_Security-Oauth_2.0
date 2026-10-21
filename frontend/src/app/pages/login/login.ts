@@ -1,43 +1,24 @@
 import { Component, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { mensajeError } from '../../services/cita.service';
+
 @Component({
   standalone: true,
-  imports: [FormsModule],
   template: `
-    <p class="eyebrow">AUTENTICACIÓN</p>
+    <p class="eyebrow">INICIAR SESIÓN</p>
     <h1>Bienvenido de nuevo</h1>
-    <p>Ingresa con una de las cuentas de demostración.</p>
+    <p>Continúa al formulario de acceso para ingresar con tu cuenta.</p>
     @if (expired) {
       <p role="status">Tu sesión expiró. Inicia sesión nuevamente.</p>
     }
-    <form #form="ngForm" (ngSubmit)="login()" class="card narrow">
-      <label for="username">Usuario</label
-      ><input
-        id="username"
-        name="username"
-        [(ngModel)]="username"
-        required
-        maxlength="50"
-        autocomplete="username"
-      />
-      <label for="password">Contraseña</label
-      ><input
-        id="password"
-        name="password"
-        type="password"
-        [(ngModel)]="password"
-        required
-        maxlength="72"
-        autocomplete="current-password"
-      />
+    <div class="card narrow">
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
       }
-      <button [disabled]="form.invalid || busy()">{{ busy() ? 'Ingresando…' : 'Ingresar' }}</button>
-    </form>
+      <button [disabled]="busy()" (click)="login()">
+        {{ busy() ? 'Redirigiendo…' : 'Iniciar sesión' }}
+      </button>
+    </div>
     <aside>
       Paciente: <code>paciente1 / password123</code><br />Administrador:
       <code>admin1 / admin123</code>
@@ -45,32 +26,24 @@ import { mensajeError } from '../../services/cita.service';
   `,
 })
 export class Login {
-  username = '';
-  password = '';
   error = signal('');
   busy = signal(false);
   expired: boolean;
   constructor(
     private auth: AuthService,
-    private router: Router,
     route: ActivatedRoute,
   ) {
     this.expired = route.snapshot.queryParamMap.has('expired');
   }
-  login() {
+  async login() {
     if (this.busy()) return;
     this.busy.set(true);
     this.error.set('');
-    this.auth.login(this.username, this.password).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.password = '';
-        void this.router.navigate([this.auth.hasRole('ROLE_ADMIN') ? '/admin' : '/paciente']);
-      },
-      error: (err) => {
-        this.busy.set(false);
-        this.error.set(mensajeError(err));
-      },
-    });
+    try {
+      window.location.assign(await this.auth.authorizationUrl());
+    } catch {
+      this.error.set('No se pudo iniciar el acceso. Intenta nuevamente.');
+      this.busy.set(false);
+    }
   }
 }
