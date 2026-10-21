@@ -1,11 +1,15 @@
 package com.citasmedicas.config;
 
 import java.security.KeyPair;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import com.citasmedicas.repository.UsuarioRepository;
@@ -24,6 +28,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
@@ -82,14 +87,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    public RegisteredClientRepository registeredClientRepository(PasswordEncoder passwordEncoder) {
+    public RegisteredClientRepository registeredClientRepository(PasswordEncoder passwordEncoder,
+            @Value("${app.oauth2.service-secret:secret123}") String serviceSecret) {
         RegisteredClient frontendClient = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("citas-frontend")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .redirectUri("http://localhost:4200/oauth2/callback")
-                .redirectUri("http://localhost:4200/")
                 .postLogoutRedirectUri("http://localhost:4200/")
                 .scope(OidcScopes.OPENID)
                 .scope(OidcScopes.PROFILE)
@@ -101,33 +105,40 @@ public class SecurityConfig {
                         .build())
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(Duration.ofHours(1))
-                        .refreshTokenTimeToLive(Duration.ofDays(7))
                         .build())
                 .build();
 
         RegisteredClient serviceClient = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("citas-service")
-                .clientSecret(passwordEncoder.encode("secret123"))
+                .clientSecret(passwordEncoder.encode(serviceSecret))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .scope("citas.read")
-                .scope("citas.write")
                 .build();
 
         return new InMemoryRegisteredClientRepository(frontendClient, serviceClient);
     }
 
     @Bean
-    public JWKSource<SecurityContext> jwkSource() {
-        KeyPair keyPair = generateRsaKey();
-        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-        RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
-        RSAKey rsaKey = new RSAKey.Builder(publicKey)
-                .privateKey(privateKey)
-                .keyID(UUID.randomUUID().toString())
-                .build();
-        JWKSet jwkSet = new JWKSet(rsaKey);
-        return new ImmutableJWKSet<>(jwkSet);
+    public JWKSource<SecurityContext> jwkSource(
+            @Value("${app.oauth2.key-file:}") String keyFile) throws Exception {
+        Path path = keyFile.isBlank() ? null : Path.of(keyFile);
+        RSAKey rsaKey;
+        if (path != null && Files.exists(path)) {
+            rsaKey = RSAKey.parse(Files.readString(path));
+        } else {
+            KeyPair keyPair = generateRsaKey();
+            rsaKey = new RSAKey.Builder((RSAPublicKey) keyPair.getPublic())
+                    .privateKey((RSAPrivateKey) keyPair.getPrivate())
+                    .keyID(UUID.randomUUID().toString())
+                    .build();
+            // La clave privada queda en config/, excluido de Git. Nunca enviarla al cliente.
+            if (path != null) {
+                Files.createDirectories(path.toAbsolutePath().getParent());
+                Files.writeString(path, rsaKey.toJSONString(), StandardOpenOption.CREATE_NEW);
+            }
+        }
+        return new ImmutableJWKSet<>(new JWKSet(rsaKey));
     }
 
     private static KeyPair generateRsaKey() {
@@ -204,35 +215,48 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // La API solo reconoce Bearer JWT: nunca reutiliza la sesión del formulario.
     @Bean
     @Order(2)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http, Environment env) throws Exception {
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         var roles = new JwtGrantedAuthoritiesConverter();
         roles.setAuthoritiesClaimName("roles");
         roles.setAuthorityPrefix("");
-
+        var scopes = new JwtGrantedAuthoritiesConverter();
         var converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(roles);
-
-        http
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            var authorities = new ArrayList<GrantedAuthority>(roles.convert(jwt));
+            authorities.addAll(scopes.convert(jwt));
+            return authorities;
+        });
+        http.securityMatcher("/api/**", "/auth/**", "/publico/**")
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> {
-                auth.requestMatchers("/publico/**", "/auth/**", "/login", "/error").permitAll();
-                if (env.acceptsProfiles(Profiles.of("h2"))) {
-                    auth.requestMatchers("/h2-console/**").permitAll();
-                }
-                auth.requestMatchers("/api/citas", "/api/citas/**").hasRole("USER")
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .anyRequest().authenticated();
-            })
-            .formLogin(Customizer.withDefaults())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/publico/**", "/auth/**").permitAll()
+                .requestMatchers("/api/citas", "/api/citas/**").hasRole("USER")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/servicio/resumen").hasAuthority("SCOPE_citas.read")
+                .anyRequest().denyAll())
             .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)));
+        return http.build();
+    }
 
+    // El login del servidor OAuth sí necesita sesión y protección CSRF.
+    @Bean
+    @Order(3)
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http, Environment env) throws Exception {
+        http.authorizeHttpRequests(auth -> {
+                auth.requestMatchers("/login", "/error").permitAll();
+                if (env.acceptsProfiles(Profiles.of("h2"))) auth.requestMatchers("/h2-console/**").permitAll();
+                auth.anyRequest().authenticated();
+            })
+            .formLogin(Customizer.withDefaults());
         if (env.acceptsProfiles(Profiles.of("h2"))) {
+            http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"));
             http.headers(h -> h.frameOptions(f -> f.sameOrigin()));
         }
-
         return http.build();
     }
 
