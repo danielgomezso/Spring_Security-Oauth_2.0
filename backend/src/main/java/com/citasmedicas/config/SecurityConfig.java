@@ -61,6 +61,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -197,6 +198,7 @@ public class SecurityConfig {
 
         http
             .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
+            .requestCache(cache -> cache.requestCache(authorizationRequestCache()))
             .with(authorizationServerConfigurer, authorizationServer ->
                 authorizationServer.oidc(Customizer.withDefaults())
             )
@@ -252,12 +254,22 @@ public class SecurityConfig {
                 if (env.acceptsProfiles(Profiles.of("h2"))) auth.requestMatchers("/h2-console/**").permitAll();
                 auth.anyRequest().authenticated();
             })
+            .requestCache(cache -> cache.requestCache(authorizationRequestCache()))
             .formLogin(Customizer.withDefaults());
         if (env.acceptsProfiles(Profiles.of("h2"))) {
             http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"));
             http.headers(h -> h.frameOptions(f -> f.sameOrigin()));
         }
         return http.build();
+    }
+
+    // Solo OAuth puede guardar el destino posterior al login. Las peticiones de
+    // DevTools, favicon u otras rutas no deben reemplazarlo mientras iniciamos sesión.
+    private HttpSessionRequestCache authorizationRequestCache() {
+        var cache = new HttpSessionRequestCache();
+        cache.setRequestMatcher(request -> "GET".equals(request.getMethod())
+                && (request.getContextPath() + "/oauth2/authorize").equals(request.getRequestURI()));
+        return cache;
     }
 
     @Bean

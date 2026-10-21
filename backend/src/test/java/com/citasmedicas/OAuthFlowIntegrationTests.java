@@ -52,6 +52,35 @@ class OAuthFlowIntegrationTests {
                 .param("code", code).param("code_verifier", verifier);
     }
 
+    @Test void browserRequestsDoNotReplaceTheOAuthReturnUrl() throws Exception {
+        String challenge = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                MessageDigest.getInstance("SHA-256").digest(VERIFIER.getBytes(StandardCharsets.US_ASCII)));
+        var start = mvc.perform(get("/oauth2/authorize").accept("text/html")
+                .queryParam("response_type", "code").queryParam("client_id", "citas-frontend")
+                .queryParam("redirect_uri", CALLBACK).queryParam("scope", "openid citas.read")
+                .queryParam("state", "browser-test").queryParam("code_challenge", challenge)
+                .queryParam("code_challenge_method", "S256"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        var session = (MockHttpSession) start.getRequest().getSession(false);
+        // Chrome puede solicitar este archivo mientras el formulario está abierto.
+        mvc.perform(get("/.well-known/appspecific/com.chrome.devtools.json")
+                .session(session).accept("text/html"));
+        mvc.perform(get("/favicon.ico").session(session).accept("text/html"));
+        mvc.perform(get("/ruta-inexistente").session(session).accept("text/html"));
+        var login = mvc.perform(post("/login").session(session).with(csrf())
+                .param("username", "paciente1").param("password", "password123"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        String returnUrl = login.getResponse().getRedirectedUrl();
+        assertThat(returnUrl).startsWith("http://localhost/oauth2/authorize?")
+                .contains("state=browser-test").doesNotContain("devtools", "favicon", "ruta-inexistente");
+        var authorized = mvc.perform(get(java.net.URI.create(returnUrl)).session(session))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        var params = UriComponentsBuilder.fromUriString(authorized.getResponse().getRedirectedUrl())
+                .build().getQueryParams();
+        assertThat(params.getFirst("state")).isEqualTo("browser-test");
+        mvc.perform(exchange(params.getFirst("code"), VERIFIER)).andExpect(status().isOk());
+    }
+
     @Test void rsaKeySurvivesReload(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
         var config = new com.citasmedicas.config.SecurityConfig();
         String path = dir.resolve("key.json").toString();
